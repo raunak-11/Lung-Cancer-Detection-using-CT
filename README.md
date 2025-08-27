@@ -20,7 +20,8 @@ python app.py
    - Normal
 
 5. View confidence scores indicating prediction certainty.
-##Features
+## Features
+
 Classifies lung CT scans into Benign, Malignant, or Normal with high accuracy.
 
 Utilizes transfer learning with the EfficientNetB0 architecture for efficient training.
