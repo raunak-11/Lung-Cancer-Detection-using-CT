@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lung Cancer Detector</title>
+    <style>
+        body {
+            max-width: 600px;
+            margin: 3rem auto;
+            font-family: 'Calibri', sans-serif;
+            background: #fafafa;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            color: #222;
+        }
+        h2 {
+            text-align: center;
+            color: #0073e6;
+            margin-bottom: 1.5rem;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.3rem;
+        }
+        input[type="file"] {
+            padding: 0.6rem;
+            border-radius: 8px;
+            border: 2px dashed #bbb;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+        input[type="file"]:hover {
+            border-color: #0073e6;
+        }
+        button {
+            background-color: #0073e6;
+            color: white;
+            border: none;
+            padding: 0.9rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 7px rgba(0, 115, 230, 0.4);
+        }
+        button:hover {
+            background-color: #005bb5;
+        }
+        #result {
+            margin-top: 1.8rem;
+            padding: 1.2rem;
+            background-color: #d0f0d8;
+            border-radius: 8px;
+            font-size: 1.15rem;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        #error {
+            background-color: #f9d6d5;
+            color: #b91c1c;
+        }
+    </style>
+</head>
+<body>
+    <h2>Lung Cancer Detection Web App</h2>
+    <form id="uploadForm">
+        <input type="file" id="imageFile" accept="image/*" required />
+        <button type="submit">Classify CT Scan</button>
+    </form>
+    <div id="result"></div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const resultDiv = document.getElementById('result');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const fileInput = document.getElementById('imageFile');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                resultDiv.textContent = 'Please select an image file to classify.';
+                resultDiv.className = 'error';
+                return;
+            }
+
+            resultDiv.textContent = 'Classifying your image, please wait...';
+            resultDiv.className = '';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    resultDiv.textContent = 'Error: ' + data.error;
+                    resultDiv.className = 'error';
+                } else {
+                    resultDiv.textContent = `Prediction: ${data.class} (Confidence: ${data.confidence})`;
+                    resultDiv.className = '';
+                }
+            } catch (err) {
+                resultDiv.textContent = 'Error connecting to the server. Try again!';
+                resultDiv.className = 'error';
+            }
+        });
+    </script>
+</body>
+</html>
