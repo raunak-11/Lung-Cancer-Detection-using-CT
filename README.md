@@ -22,12 +22,12 @@ python app.py
 5. View confidence scores indicating prediction certainty.
 ## Features
 
-Classifies lung CT scans into Benign, Malignant, or Normal with high accuracy.
+1. Classifies lung CT scans into Benign, Malignant, or Normal with high accuracy.
 
-Utilizes transfer learning with the EfficientNetB0 architecture for efficient training.
+2. Utilizes transfer learning with the EfficientNetB0 architecture for efficient training.
 
-Simple Flask web application interface for easy image upload and instant prediction.
+3. Simple Flask web application interface for easy image upload and instant prediction.
 
-Displays confidence scores alongside predicted classes to help assess certainty.
+4. Displays confidence scores alongside predicted classes to help assess certainty.
 
-Open-source and extendable for further development and improvements.
+5. Open-source and extendable for further development and improvements.
