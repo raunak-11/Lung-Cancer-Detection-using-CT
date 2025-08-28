@@ -1,52 +1,58 @@
-from flask import Flask, request, jsonify, render_template
+# app.py
+
+from flask import Flask, request, render_template
+import numpy as np
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
-import numpy as np
+from tensorflow.keras.applications.efficientnet import preprocess_input
 import os
 
 app = Flask(__name__)
 
-# Load your trained lung cancer classification model
+# Load the trained model
 model = load_model('lung_cancer_model.h5')
 
-# Classes must match the model training order
-class_labels = ['Benign', 'Malignant', 'Normal']
+# Class names exactly as in training
+class_names = ['Benign', 'Malignant', 'Normal']
 
 def prepare_image(image_path):
+    """
+    Load and preprocess the image to be compatible with EfficientNet input.
+    """
     img = load_img(image_path, target_size=(224, 224))
-    img = img_to_array(img) / 255.0  # Normalize pixels
-    img = np.expand_dims(img, axis=0)  # Add batch dimension
+    img = img_to_array(img)
+    img = preprocess_input(img)  # Use EfficientNet preprocessing
+    img = np.expand_dims(img, axis=0)
     return img
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('index.html')
+    prediction = ''
+    confidence = 0.0
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            prediction = 'No file part'
+        else:
+            file = request.files['file']
+            if file.filename == '':
+                prediction = 'No selected file'
+            else:
+                # Save the uploaded file temporarily
+                upload_path = os.path.join('uploads', file.filename)
+                os.makedirs('uploads', exist_ok=True)
+                file.save(upload_path)
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file part in the request'}), 400
+                # Prepare image and predict
+                img = prepare_image(upload_path)
+                preds = model.predict(img)
+                pred_class = np.argmax(preds[0])
+                confidence = preds[0][pred_class] * 100
+                prediction = class_names[pred_class]
 
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
+                # Optionally remove file after prediction
+                os.remove(upload_path)
 
-    os.makedirs('uploads', exist_ok=True)
-    filepath = os.path.join('uploads', file.filename)
-    file.save(filepath)
-
-    image = prepare_image(filepath)
-    preds = model.predict(image)
-    idx = np.argmax(preds[0])
-    confidence = preds[0][idx]
-
-    result = {
-        'class': class_labels[idx],
-        'confidence': f"{confidence * 100:.2f}%"
-    }
-
-    os.remove(filepath)
-    return jsonify(result)
+    return render_template('index.html', prediction=prediction, confidence=confidence)
 
 if __name__ == '__main__':
     app.run(debug=True)

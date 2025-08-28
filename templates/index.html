@@ -3,118 +3,144 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Lung Cancer Detector</title>
+    <title>Lung Cancer Classification</title>
     <style>
         body {
-            max-width: 600px;
-            margin: 3rem auto;
-            font-family: 'Calibri', sans-serif;
-            background: #fafafa;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-            color: #222;
-        }
-        h2 {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #6cc1ff, #3a8dff);
+            color: #1c1c1c;
             text-align: center;
-            color: #0073e6;
-            margin-bottom: 1.5rem;
+            padding: 40px 20px;
+            margin: 0;
+        }
+        h1 {
+            font-size: 2.6rem;
+            margin-bottom: 10px;
+            color: #fff;
+            text-shadow: 1px 1px 6px #000c29;
+        }
+        p.description {
+            margin-top: 0;
+            margin-bottom: 30px;
+            color: #e3e3e3;
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
         }
         form {
-            display: flex;
-            flex-direction: column;
-            gap: 1.3rem;
+            background: #ffffffdd;
+            padding: 30px 20px;
+            border-radius: 15px;
+            max-width: 400px;
+            margin: 0 auto 40px auto;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         }
         input[type="file"] {
-            padding: 0.6rem;
-            border-radius: 8px;
-            border: 2px dashed #bbb;
             cursor: pointer;
-            transition: border-color 0.3s ease;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            width: 100%;
+            box-sizing: border-box;
         }
-        input[type="file"]:hover {
-            border-color: #0073e6;
-        }
-        button {
-            background-color: #0073e6;
-            color: white;
+        input[type="submit"] {
+            background-color: #3a8dff;
             border: none;
-            padding: 0.9rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
+            padding: 15px 40px;
+            margin-top: 20px;
+            font-size: 1.1rem;
+            color: white;
+            border-radius: 50px;
             cursor: pointer;
-            box-shadow: 0 4px 7px rgba(0, 115, 230, 0.4);
+            transition: background-color 0.3s ease;
+            width: 100%;
         }
-        button:hover {
-            background-color: #005bb5;
+        input[type="submit"]:hover {
+            background-color: #006fe6;
         }
-        #result {
-            margin-top: 1.8rem;
-            padding: 1.2rem;
-            background-color: #d0f0d8;
-            border-radius: 8px;
-            font-size: 1.15rem;
-            font-weight: 600;
+        .result {
+            background: #ffffffee;
+            border-radius: 15px;
+            padding: 25px 30px;
+            max-width: 400px;
+            margin: 0 auto;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+        .result h2 {
+            margin-top: 0;
+            font-size: 2rem;
+            color: #333;
+        }
+        .confidence-bar {
+            background: #ddd;
+            border-radius: 15px;
+            overflow: hidden;
+            height: 25px;
+            margin: 15px 0;
+        }
+        .confidence-fill {
+            height: 100%;
+            width: 0;
+            background: #3a8dff;
+            color: #fff;
+            font-weight: bold;
+            line-height: 25px;
+            transition: width 1s ease-in-out;
+            border-radius: 15px 0 0 15px;
             text-align: center;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
-        #error {
-            background-color: #f9d6d5;
-            color: #b91c1c;
+        .footer {
+            margin-top: 50px;
+            font-size: 0.9rem;
+            color: #eee;
+        }
+        @media (max-width: 500px) {
+            body {
+                padding: 20px 10px;
+            }
+            form, .result {
+                max-width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <h2>Lung Cancer Detection Web App</h2>
-    <form id="uploadForm">
-        <input type="file" id="imageFile" accept="image/*" required />
-        <button type="submit">Classify CT Scan</button>
+    <h1>Lung Cancer CT Image Classifier</h1>
+    <p class="description">
+        Upload a lung CT scan image and let the model predict if it is <strong>Benign</strong>, <strong>Malignant</strong>, or <strong>Normal</strong>. The model uses state-of-the-art EfficientNet transfer learning for high accuracy.
+    </p>
+
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" id="fileInput" accept="image/*" required />
+        <input type="submit" value="Classify Image" />
     </form>
-    <div id="result"></div>
+
+    {% if prediction %}
+    <div class="result">
+        <h2>Prediction: <span id="prediction">{{ prediction }}</span></h2>
+        <div>Confidence:</div>
+        <div class="confidence-bar" aria-label="Prediction confidence">
+            <div class="confidence-fill" id="confidenceFill" style="width: {{ confidence }}%;">{{ confidence | round(2) }}%</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        &copy; 2025 Lung Cancer Classification Project | Developed with TensorFlow & Flask
+    </div>
 
     <script>
-        const form = document.getElementById('uploadForm');
-        const resultDiv = document.getElementById('result');
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const fileInput = document.getElementById('imageFile');
-            const file = fileInput.files[0];
-
-            if (!file) {
-                resultDiv.textContent = 'Please select an image file to classify.';
-                resultDiv.className = 'error';
-                return;
-            }
-
-            resultDiv.textContent = 'Classifying your image, please wait...';
-            resultDiv.className = '';
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            try {
-                const response = await fetch('/predict', {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                const data = await response.json();
-
-                if (data.error) {
-                    resultDiv.textContent = 'Error: ' + data.error;
-                    resultDiv.className = 'error';
-                } else {
-                    resultDiv.textContent = `Prediction: ${data.class} (Confidence: ${data.confidence})`;
-                    resultDiv.className = '';
-                }
-            } catch (err) {
-                resultDiv.textContent = 'Error connecting to the server. Try again!';
-                resultDiv.className = 'error';
-            }
-        });
+      // Animate confidence bar width smoothly if present
+      window.onload = function(){
+        const fill = document.getElementById('confidenceFill');
+        if(fill) {
+            fill.style.width = '0%';
+            setTimeout(() => {
+                fill.style.width = fill.textContent.trim();
+            }, 100);
+        }
+      }
     </script>
 </body>
 </html>
